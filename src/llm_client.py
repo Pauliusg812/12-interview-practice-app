@@ -24,7 +24,7 @@ def load_prompt(filename):
 
 
 def chat(
-    system_prompt, user_message, model="openrouter/free", temperature=0, max_tokens=500
+    system_prompt, user_message, model="openrouter/free", temperature=0, max_tokens=2000
 ):
     """Send a message to OpenRouter and return the response."""
     client = get_client()
