@@ -1,6 +1,9 @@
 """Interview Practice App — Streamlit front-end."""
 
+import json
+
 import streamlit as st
+
 from src.judge import judge
 from src.llm_client import chat, load_prompt
 
@@ -18,6 +21,8 @@ prompt_options = {
     "v3 — Chain-of-thought": "system_v3.md",
     "v4 — Structured output": "system_v4.md",
     "v5 — Persona (Alex)": "system_v5.md",
+    "JSON v1 — Flat array": "system_json_v1.md",
+    "JSON v2 — Grouped by category": "system_json_v2.md",
 }
 
 model_options = {
@@ -81,14 +86,31 @@ if st.button("Generate Interview Prep"):
 
 if "last_result" in st.session_state:
     result = st.session_state["last_result"]
-    st.markdown(result["content"])
+    is_json_prompt = "json" in prompt_options[selected]
+
+    if is_json_prompt:
+        try:
+            data = json.loads(result["content"])
+            st.json(data)
+        except json.JSONDecodeError:
+            st.warning(
+                "Model did not return valid JSON. Showing raw " "output instead."
+            )
+            st.markdown(result["content"])
+    else:
+        st.markdown(result["content"])
+
     st.caption(f"Tokens used: {result['tokens']} | " f"Model: {result['model']}")
+
+    selected_judge_model = st.selectbox("Choose a judge model:", model_options.keys())
+    judge_model = model_options[selected_judge_model]
 
     if st.button("Judge this output"):
         with st.spinner("Judging..."):
             verdict = judge(
                 st.session_state["last_input"],
                 result["content"],
+                model=judge_model,
             )
         st.subheader("Judge verdict")
         st.markdown(verdict["content"])
