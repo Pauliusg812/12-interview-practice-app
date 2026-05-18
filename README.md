@@ -129,3 +129,51 @@ versioned and revised independently.
   follow the judge's output format inconsistently (duplicated
   lines, collapsed output). A capable model (e.g.
   `gpt-5-mini`) produces reliable, parseable verdicts.
+
+  ## Post-review improvements
+
+These items were raised in the Sprint 1 project review (score: 96).
+The sprint is complete; these are recorded as forward-looking
+lessons to apply in later sprints, not changes to this submission.
+
+- **Schema-enforced JSON output.** Replace prompt-based JSON
+  instructions with API-level schema enforcement (Pydantic models
+  passed to the request). The API then guarantees a parseable
+  response, which removes the truncation/parse-failure path
+  entirely and shrinks the JSON prompts to a one-line instruction.
+  To apply in Sprint 2.
+
+- **Timeout and retry on API calls.** The OpenRouter call has no
+  timeout and no retry, so a transient network failure or a 429
+  rate-limit response would crash the UI. The robust approach is
+  an explicit timeout plus retry with backoff (e.g. the `tenacity`
+  library). AI providers are unstable in production, so this is
+  standard practice for any real deployment.
+
+- **Token cost display.** Token usage is already tracked in
+  `result["tokens"]` but not converted to a monetary cost.
+  OpenRouter exposes per-model pricing via its models endpoint,
+  so the app could show the estimated cost per call. This would
+  also complete Sprint 1 medium task #4.
+
+- **Direct vs transitive dependencies.** `requirements.txt`
+  currently pins 50+ packages, including `pandas`, `numpy`, and
+  `pyarrow`, which are pulled in by Streamlit and never imported
+  directly. The lesson is to separate direct dependencies (what
+  the project actually imports) from transitive ones (what those
+  dependencies need), e.g. by moving to a `pyproject.toml` with a
+  lockfile so the distinction is explicit.
+
+- **Structured logging.** The app uses no `print` statements
+  (good) but also has no logging. Adding a logging setup would
+  make API calls, JSON parsing failures, and judge invocations
+  traceable when something goes wrong — important for debugging
+  anything beyond a local demo.
+
+- **Stronger prompt-injection defense.** The current guard matches
+  only three hardcoded English phrases, so paraphrases, non-English
+  variants, and encoded payloads bypass it. This was already noted
+  as a known limitation. The better approach treats all user input
+  as untrusted and layers defenses: input filtering, system-prompt
+  hardening, and output validation, rather than relying on phrase
+  matching alone.
